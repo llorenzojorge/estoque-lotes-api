@@ -104,6 +104,29 @@ Registro do que foi feito, do que aprendi e dos problemas que resolvi ao longo d
 
 ---
 
+## Sessão 3: solução .NET e configuração
+
+### O que foi feito
+- Criei a solução `EstoqueLotes.sln` e o projeto `src/EstoqueLotes.Api` (ASP.NET Core Web API com Controllers).
+- Instalei pelo NuGet o `Microsoft.EntityFrameworkCore.SqlServer` (8.0.11) e o `Dapper` (2.1.35).
+- Guardei a connection string no **user-secrets**, fora do repositório.
+- Apaguei o exemplo `WeatherForecast` e comentei o `Program.cs`.
+- Rodei a API e abri o Swagger em `/swagger`.
+
+### O que aprendi
+- **Solution × project:** o `.csproj` descreve um projeto e suas dependências (parecido com o `package.json`).
+  A `.sln` agrupa vários projetos; aqui vão ser a API e os testes.
+- **NuGet** é o gerenciador de pacotes do .NET: `dotnet add package` equivale a `npm install`.
+- **Configuração em camadas:** o `CreateBuilder` junta `appsettings.json`, `appsettings.Development.json`,
+  user-secrets e variáveis de ambiente. A chave `ConnectionStrings:DefaultConnection` pode vir de qualquer
+  uma delas, e o código lê sempre do mesmo jeito.
+- **User-secrets:** fica num arquivo no perfil do usuário (`%APPDATA%\Microsoft\UserSecrets`), só é carregado
+  em Development e nunca entra no Git. O `UserSecretsId` no `.csproj` é só um identificador, não é segredo.
+- **`Program.cs` tem duas fases:** registrar serviços na injeção de dependência (`builder.Services`) e montar
+  o pipeline de middlewares (`app.Use...`), por onde cada requisição passa em ordem.
+
+---
+
 ## Próximas sessões
 
 (Novas sessões são registradas aqui.)
