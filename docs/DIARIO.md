@@ -125,6 +125,59 @@ Registro do que foi feito, do que aprendi e dos problemas que resolvi ao longo d
 - **`Program.cs` tem duas fases:** registrar serviços na injeção de dependência (`builder.Services`) e montar
   o pipeline de middlewares (`app.Use...`), por onde cada requisição passa em ordem.
 
+### Problemas que resolvi
+
+**5. Commit sem a pasta do projeto**
+- Sintoma: depois do push, o `git status` ainda mostrava `src/` como *untracked*. O commit tinha levado só o `.sln`.
+- Solução: um commit novo com a pasta. Não usei `--amend` + `push --force`, porque o commit já estava no
+  GitHub e reescrever histórico publicado é má prática.
+- Lição: rodar `git status` **entre** o `git add` e o `git commit`.
+
+---
+
+## Sessão 4: CRUD de produtos em camadas
+
+### O que foi feito
+- Entidade `Produto`, `AppDbContext` (só mapeia a tabela existente, sem migrations) e os DTOs
+  `ProdutoDto` (saída) e `CriarProdutoDto` (entrada, com `[Required]` e `[MaxLength]`).
+- `IProdutoRepository`/`ProdutoRepository`, `IProdutoService`/`ProdutoService` e `ProdutosController`.
+- Registro do `AppDbContext`, do repository e do service na injeção de dependência.
+- Endpoints: `GET /api/produtos`, `GET /api/produtos/{id}`, `POST`, `PUT` e `DELETE`.
+
+### O que aprendi
+- **Camadas:** o Controller só lida com HTTP, o Service converte DTO ↔ entidade e terá as regras, e o
+  Repository só fala com o banco.
+- **Entidade × DTO:** a entidade espelha a tabela; o DTO é o contrato da API. O DTO de entrada não tem `Id`,
+  porque quem gera o Id é o banco.
+- **Validação automática:** com `[ApiController]`, um DTO inválido devolve `400` com os erros de cada campo,
+  antes de chegar no meu código.
+- **Change tracking do EF Core:** ao buscar uma entidade sem `AsNoTracking`, o EF vigia as alterações. No PUT
+  basta mudar as propriedades e chamar `SaveChangesAsync`, que ele gera o `UPDATE` só com o que mudou.
+- **`SaveChangesAsync` é a transação:** `Adicionar`/`Remover` só marcam a mudança. Tudo vai para o banco junto,
+  numa transação, no `SaveChangesAsync`. Isso vai ser a base da regra de movimentação.
+- **Status codes:** `201 Created` com o cabeçalho `Location` (`CreatedAtAction`), `204 No Content` no PUT e no
+  DELETE, `404` quando o Id não existe.
+
+### Problemas que encontrei
+
+**6. Excluir um produto que tem lotes devolvia 500**
+- Sintoma: `DELETE /api/produtos/1` respondeu `500 Internal Server Error`.
+- Causa: o produto 1 tem lotes, e a `FOREIGN KEY` de `Lotes.ProdutoId` impede a exclusão. O banco protegeu
+  os dados (é a defesa em profundidade funcionando), mas a API não traduziu o erro.
+- Correção planejada: quando a entidade `Lote` existir, o service vai conferir se o produto tem lotes antes
+  de excluir e responder com uma mensagem clara em vez de `500`.
+
+**7. Id 1001 em vez de 9**
+- Sintoma: o primeiro produto criado pela API recebeu o Id 1001.
+- Causa: o SQL Server reserva valores de `IDENTITY` em cache (blocos de 1000) e os perde quando o serviço é
+  reiniciado sem um desligamento limpo, como acontece com o container. É um comportamento documentado.
+- Lição: `IDENTITY` garante valores únicos e crescentes, não sem buracos. Nunca usar o Id como contagem.
+
+**8. Acento quebrado ao testar pelo terminal**
+- Sintoma: um POST com "Laticínios" feito com `curl` no Git Bash voltou `400` dizendo que o JSON era inválido.
+- Causa: o terminal não enviou o texto em UTF-8. No Swagger funcionou normalmente.
+- Solução: escapar o caractere no JSON (`í`) ao testar pelo terminal.
+
 ---
 
 ## Próximas sessões
