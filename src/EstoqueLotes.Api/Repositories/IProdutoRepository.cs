@@ -8,6 +8,7 @@ public interface IProdutoRepository
 {
     Task<List<Produto>> ListarAsync();
     Task<Produto?> ObterPorIdAsync(int id);
+    Task<bool> PossuiLotesAsync(int produtoId);
     void Adicionar(Produto produto);
     void Remover(Produto produto);
 

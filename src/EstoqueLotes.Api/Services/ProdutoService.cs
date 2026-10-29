@@ -1,4 +1,5 @@
 using EstoqueLotes.Api.Dtos;
+using EstoqueLotes.Api.Errors;
 using EstoqueLotes.Api.Models;
 using EstoqueLotes.Api.Repositories;
 
@@ -55,6 +56,10 @@ public class ProdutoService : IProdutoService
     {
         var produto = await _repository.ObterPorIdAsync(id);
         if (produto is null) return false;
+
+        // Sem esta checagem, a FK de Lotes barrava o DELETE no banco e a API devolvia 500.
+        if (await _repository.PossuiLotesAsync(id))
+            throw new RegraDeNegocioException("Não é possível excluir um produto que possui lotes.");
 
         _repository.Remover(produto);
         await _repository.SalvarAlteracoesAsync();

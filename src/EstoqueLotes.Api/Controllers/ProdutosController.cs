@@ -57,6 +57,7 @@ public class ProdutosController : ControllerBase
     // DELETE /api/produtos/5
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Remover(int id)
     {

@@ -19,6 +19,10 @@ public class ProdutoRepository : IProdutoRepository
     public Task<Produto?> ObterPorIdAsync(int id) =>
         _context.Produtos.FirstOrDefaultAsync(p => p.Id == id);
 
+    // AnyAsync vira um "SELECT CASE WHEN EXISTS(...)": não carrega os lotes, só pergunta se existe algum.
+    public Task<bool> PossuiLotesAsync(int produtoId) =>
+        _context.Lotes.AnyAsync(l => l.ProdutoId == produtoId);
+
     public void Adicionar(Produto produto) => _context.Produtos.Add(produto);
 
     public void Remover(Produto produto) => _context.Produtos.Remove(produto);
