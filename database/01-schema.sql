@@ -24,7 +24,10 @@ CREATE TABLE Lotes (
     CodigoLote     NVARCHAR(30) NOT NULL UNIQUE,
     DataFabricacao DATE NOT NULL,
     DataValidade   DATE NOT NULL,
-    Quantidade     INT  NOT NULL CHECK (Quantidade >= 0)
+    Quantidade     INT  NOT NULL CHECK (Quantidade >= 0),
+
+    -- Constraint de tabela (compara duas colunas): validade sempre depois da fabricação
+    CONSTRAINT CK_Lotes_Validade CHECK (DataValidade > DataFabricacao)
 );
 
 -- Histórico de entradas e saídas de um lote (rastreabilidade)
