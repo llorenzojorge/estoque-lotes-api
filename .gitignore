@@ -1,0 +1,12 @@
+# Segredos
+.env
+
+# Anotações pessoais de estudo (não vão para o repositório)
+estudos/
+CLAUDE.md
+
+# Build do .NET
+bin/
+obj/
+.vs/
+*.user
