@@ -180,6 +180,61 @@ Registro do que foi feito, do que aprendi e dos problemas que resolvi ao longo d
 
 ---
 
+## Sessão 5: lotes, movimentações e a regra de estoque
+
+### O que foi feito
+- Entidades `Lote` e `Movimentacao`, com os relacionamentos 1:N mapeados no `AppDbContext`, e o enum
+  `TipoMovimentacao` (`Entrada`/`Saida`), convertido para `'ENTRADA'`/`'SAIDA'` no banco.
+- `POST /api/lotes`: valida validade × fabricação, se o produto existe e se o código é único. A quantidade
+  inicial vira uma `ENTRADA` no histórico, gravada junto com o lote.
+- `GET /api/lotes/{id}` (com o nome do produto e se está vencido) e `GET /api/lotes/{id}/movimentacoes`.
+- Tratamento global de erros: `RegraDeNegocioException` → 400, `NaoEncontradoException` → 404, qualquer outra
+  → 500 sem expor detalhes internos, sempre no formato `ProblemDetails`.
+- Corrigido o 500 ao excluir produto com lotes: agora responde 400 com mensagem.
+- **Escrevi a regra de movimentação** (`MovimentacaoService.RegistrarAsync`): lote inexistente → 404, saída de
+  lote vencido → 400, saída maior que o estoque → 400, entrada soma, saída subtrai, e tudo é gravado com um
+  único `SaveChangesAsync`.
+
+### O que aprendi
+- **Classe × objeto na prática:** `Lote` é a classe; `lote` é o objeto que o repository devolveu. Eu não fiz
+  `new Lote()`: quem instancia é o EF Core, que roda o `SELECT` e preenche um objeto com a linha do banco.
+  Como o objeto é um `Lote`, ele tem os métodos da classe, como `EstaVencido`.
+- **Namespace × import do TypeScript:** no C# o módulo é o namespace, não o arquivo. Um `using` traz todas as
+  classes do namespace, e o `public` faz o papel do `export`. O `ImplicitUsings` do `.csproj` importa sozinho
+  o básico (`System`, `System.Linq`...).
+- **Encapsulamento:** a regra "vencido = validade antes de hoje" fica num método do próprio `Lote`, num lugar só.
+- **`DateOnly` × `DateTime`:** o método pedia `DateOnly` e eu passei `DateTime.Today`. O compilador não converte
+  sozinho: `DateOnly.FromDateTime(DateTime.Today)`. É a regra de comparar sempre data com data.
+- **Nullable e o operador `!`:** `dto.Tipo` é `TipoMovimentacao?`. O `[Required]` garante que vem preenchido,
+  mas o compilador não sabe disso; `dto.Tipo!.Value` diz "aqui não é nulo" (igual ao `!` do TypeScript).
+- **Teste de mesa:** simulando a regra com números (lote com 120, entrada de 20), descobri que meu código
+  subtraía sempre e depois somava na entrada, ou seja, a entrada não mudava nada. Resolvi separando os casos
+  num `if`/`else`.
+- **Transação pelo change tracking:** não chamo nada para salvar o lote. O EF percebe que a `Quantidade` mudou
+  e, no mesmo `SaveChangesAsync`, gera o `INSERT` da movimentação e o `UPDATE` do lote numa transação.
+- **Duas camadas de validação:** o formato é validado no DTO (`quantidade: 0` volta 400 antes de chegar ao
+  Service); a regra de negócio, que depende do lote no banco, é validada no Service.
+- **Ler erro do compilador:** `Arquivo.cs(58,20)` é linha e coluna; `CS0103` é o código do erro. C# diferencia
+  maiúsculas de minúsculas (`Datetime` ≠ `DateTime`).
+- **Staging area do Git:** ela é uma "foto" do próximo commit e não precisa ser igual ao disco. Usei isso para
+  separar em dois commits o esqueleto do service e a regra que escrevi.
+
+### Problemas que resolvi
+
+**9. Rodar só um pedaço da consulta no SSMS**
+- Sintoma: ao conferir a consulta de consistência, apareceram `Incorrect syntax near 'FROM'` e
+  `The multi-part identifier "l.CodigoLote" could not be bound`.
+- Causa: selecionei só o começo da consulta. Sem o `FROM Lotes l`, o apelido `l` não existe.
+- Lição: o SQL Server processa o `FROM`/`JOIN` antes do `SELECT`, e é o `FROM` que cria os apelidos.
+
+### Como testei
+- No Swagger: saída e entrada no lote 1, saída no lote zerado (400), no lote vencido (400), no lote que vence
+  hoje (201, caso de borda), lote inexistente (404) e quantidade zero (400 pela validação do DTO).
+- No SSMS: a consulta de consistência voltou vazia, ou seja, o saldo de todos os lotes bate com o histórico.
+  Depois rodei o seed para voltar ao estado original.
+
+---
+
 ## Próximas sessões
 
 (Novas sessões são registradas aqui.)
