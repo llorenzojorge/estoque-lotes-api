@@ -2,11 +2,24 @@
 //   1) builder: registrar serviços na injeção de dependência (o que a aplicação PODE usar);
 //   2) app: montar o pipeline de middlewares (por onde CADA requisição passa, em ordem).
 
+using EstoqueLotes.Api.Data;
+using EstoqueLotes.Api.Repositories;
+using EstoqueLotes.Api.Services;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 // CreateBuilder já carrega a configuração: appsettings.json, appsettings.{Ambiente}.json,
 // user-secrets (só em Development) e variáveis de ambiente. É daí que vem a connection string.
 
 // ---------- 1) Serviços (injeção de dependência) ----------
+
+// DbContext do EF Core. AddDbContext já registra como Scoped: uma instância por requisição HTTP.
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// "Quando alguém pedir a interface, entregue esta classe." Scoped = uma instância por requisição.
+builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
+builder.Services.AddScoped<IProdutoService, ProdutoService>();
 
 builder.Services.AddControllers();           // habilita os Controllers (classes com [ApiController])
 builder.Services.AddEndpointsApiExplorer();  // descobre os endpoints para documentar
