@@ -5,6 +5,9 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      # Sem isto o container roda em UTC: depois das 21h o GETDATE() já estaria no dia seguinte
+      # e discordaria do DateTime.Today da API.
+      TZ: America/Sao_Paulo
     ports:
       - "1433:1433"
     volumes:
