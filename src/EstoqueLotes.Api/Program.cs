@@ -3,6 +3,7 @@
 //   2) app: montar o pipeline de middlewares (por onde CADA requisição passa, em ordem).
 
 using System.Text.Json.Serialization;
+using Dapper;
 using EstoqueLotes.Api.Data;
 using EstoqueLotes.Api.Errors;
 using EstoqueLotes.Api.Repositories;
@@ -27,6 +28,11 @@ builder.Services.AddScoped<IMovimentacaoRepository, MovimentacaoRepository>();
 builder.Services.AddScoped<IProdutoService, ProdutoService>();
 builder.Services.AddScoped<ILoteService, LoteService>();
 builder.Services.AddScoped<IMovimentacaoService, MovimentacaoService>();
+
+// Relatórios: Dapper com SQL puro (abre a própria SqlConnection, não usa o AppDbContext)
+SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());   // ensina o Dapper a converter DATE <-> DateOnly
+builder.Services.AddScoped<IRelatorioRepository, RelatorioRepository>();
+builder.Services.AddScoped<IRelatorioService, RelatorioService>();
 
 // Tratamento global de erros: exceções -> ProblemDetails (404, 400 ou 500)
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
