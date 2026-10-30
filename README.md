@@ -24,6 +24,8 @@ Na indústria de alimentos, o estoque não é só "quantos tenho de cada produto
 | Acesso a dados | Entity Framework Core 8 (CRUD) · Dapper com SQL puro (relatórios) |
 | Banco | SQL Server 2022 em Docker (`docker-compose`) |
 | Schema | Escrito à mão em T-SQL (`database/`), sem migrations |
+| Testes | xUnit + Moq (regra de movimentação, sem banco) |
+| CI | GitHub Actions: build e testes a cada push |
 | Ferramentas | VS Code + C# Dev Kit, SSMS, Git |
 
 ## Modelo de dados
@@ -154,6 +156,8 @@ dotnet run --project src/EstoqueLotes.Api
 
 Swagger: **http://localhost:5092/swagger**
 
+Testes (não precisam de banco): `dotnet test`
+
 ![Endpoints da API no Swagger](docs/swagger.png)
 
 ## Arquitetura
@@ -168,6 +172,7 @@ src/EstoqueLotes.Api/
 ├─ Data/           AppDbContext (mapeamento das tabelas existentes)
 ├─ Errors/         Exceções de negócio + handler global (ProblemDetails)
 └─ Program.cs      Injeção de dependência e pipeline de middlewares
+tests/EstoqueLotes.Tests/   Testes unitários dos Services, com mocks dos repositories
 database/          Schema, seed e consultas em T-SQL
 docs/DIARIO.md     Diário de desenvolvimento: o que fiz, o que aprendi e os problemas que resolvi
 ```
@@ -196,8 +201,6 @@ docs/DIARIO.md     Diário de desenvolvimento: o que fiz, o que aprendi e os pro
 
 ## Próximos passos
 
-- [ ] Testes unitários da regra de movimentação (xUnit + Moq)
-- [ ] CI com GitHub Actions (build e testes a cada push)
 - [ ] Controle de concorrência nas saídas (duas saídas simultâneas do mesmo lote)
 - [ ] Paginação nas listagens e autenticação com JWT
 - [ ] Publicar a API e o banco na nuvem
@@ -205,6 +208,8 @@ docs/DIARIO.md     Diário de desenvolvimento: o que fiz, o que aprendi e os pro
 ## Como este projeto foi feito
 
 Projeto de estudo de backend .NET. Usei IA como tutora para acelerar: ela gerou partes repetitivas (entidades,
-DTOs, repositories, controllers) e explicou cada uma. O schema, o seed, as consultas SQL e a regra de
-movimentação de estoque foram escritos por mim. O que aprendi em cada etapa, incluindo os erros que cometi, está
+DTOs, repositories, controllers, estrutura dos testes e CI) e explicou cada uma. O schema, o seed, as consultas
+SQL, a regra de
+movimentação de estoque e parte dos testes foram escritos por mim. O que aprendi em cada etapa, incluindo os
+erros que cometi, está
 em [docs/DIARIO.md](docs/DIARIO.md).

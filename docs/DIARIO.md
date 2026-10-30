@@ -285,6 +285,29 @@ Registro do que foi feito, do que aprendi e dos problemas que resolvi ao longo d
 
 ---
 
+## Sessão 7: testes unitários e CI
+
+### O que fiz
+- Criei o projeto `tests/EstoqueLotes.Tests` com xUnit e Moq e testei a regra de movimentação do
+  `MovimentacaoService`: entrada soma, saída subtrai, saída maior que o estoque, saída de lote vencido e lote
+  inexistente.
+- Configurei o GitHub Actions (`.github/workflows/ci.yml`): a cada push, o projeto é compilado e testado numa
+  máquina limpa.
+
+### O que aprendi
+- **Mock:** um objeto falso criado a partir de uma interface. Como o Service depende de `ILoteRepository`, e não
+  da classe que usa o EF Core, dá para testar a regra sem banco e em milissegundos.
+- **Arrange / Act / Assert:** preparar o cenário, executar e conferir o resultado.
+- **Testar o que não pode acontecer:** além de esperar a exceção, `Verify(..., Times.Never)` confere que nada foi
+  salvo quando a regra barra a operação.
+- **Referência:** o mock devolve o mesmo objeto `Lote` que o teste criou, por isso o teste enxerga a alteração
+  feita dentro do Service.
+- **Um motivo para falhar:** no teste do lote vencido, a saída é menor que o estoque. Assim, a exceção só pode vir
+  da regra de vencimento, e não da de estoque insuficiente.
+- **CI:** os testes não dependem do banco, então rodam no GitHub sem connection string nem senha.
+
+---
+
 ## Próximas sessões
 
 (Novas sessões são registradas aqui.)
