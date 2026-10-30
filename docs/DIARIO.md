@@ -235,6 +235,56 @@ Registro do que foi feito, do que aprendi e dos problemas que resolvi ao longo d
 
 ---
 
+## Sessão 6: README e relatórios com Dapper
+
+### O que foi feito
+- README com o problema de negócio, modelo de dados (diagrama Mermaid), regras, endpoints, passo a passo para
+  rodar, decisões técnicas e um print do Swagger. Também um `.env.example`.
+- `GET /api/relatorios/vencendo?dias=30` e `GET /api/relatorios/estoque-por-categoria`, executando com Dapper as
+  consultas 1 e 3 que eu tinha escrito em `database/03-consultas.sql`.
+- Fuso horário do container configurado (`TZ: America/Sao_Paulo` no `docker-compose.yml`).
+
+### O que aprendi
+- **Dapper é um micro-ORM:** eu escrevo o SQL e ele só executa e transforma cada linha num objeto, casando o nome
+  da coluna (ou do alias `AS`) com o nome da propriedade. Não gera SQL, não rastreia mudanças e não tem
+  `SaveChanges`. O EF Core faz tudo isso, mas em troca escondo o SQL.
+- **Quando usar cada um:** EF Core no CRUD (evita SQL repetitivo, change tracking, transação no `SaveChanges`);
+  Dapper em relatórios, com JOIN, GROUP BY e agregações, onde quero controlar a consulta exata.
+- **Parâmetros contra SQL Injection:** `new { hoje, dias }` vira `@hoje` e `@dias`. O valor viaja separado do
+  texto da consulta, então nunca é interpretado como SQL. Concatenar a entrada do usuário na string é o que abre
+  a brecha.
+- **Conexão com `using`:** a `SqlConnection` é aberta por consulta e fechada no fim do método. Na prática ela volta
+  para um *pool* e é reaproveitada, então abrir e fechar é barato.
+- **Validação de query string:** `[FromQuery, Range(0, 365)] int dias = 30` dá valor padrão e devolve 400 se
+  vier fora da faixa ou se não for número.
+
+### Problemas que resolvi
+
+**10. O container do SQL Server estava em UTC**
+- Sintoma: às 22h do dia 29, o `GETDATE()` do banco já respondia dia 30.
+- Causa: containers rodam em UTC por padrão, 3 horas à frente de Brasília. O seed calcula as datas com
+  `GETDATE()` e a API usa `DateTime.Today` do computador: das 21h à meia-noite, os dois discordavam sobre que dia
+  era hoje. Um seed rodado nesse horário deslocaria todos os cenários em um dia (o lote "que vence hoje" passaria
+  a vencer amanhã).
+- Solução: `TZ: America/Sao_Paulo` no `docker-compose.yml` e `docker compose up -d` para recriar o container.
+  Os dados sobreviveram porque ficam no volume, não no container. Nos relatórios, a data de hoje vai da API como
+  parâmetro, então API e banco usam sempre a mesma.
+
+**11. Dapper não converte `DATE` para `DateOnly`**
+- Sintoma: o relatório de vencimento deu 500 com `Error parsing column 2 (DataValidade=... - DateTime)`.
+- Causa: o driver do SQL Server entrega a coluna `DATE` como `DateTime`. O EF Core 8 converte para `DateOnly`
+  sozinho; o Dapper, por ser "micro", não.
+- Solução: um *type handler* (`DateOnlyTypeHandler`) que ensina o Dapper a converter nos dois sentidos, ao ler o
+  resultado e ao enviar parâmetros, registrado uma vez no `Program.cs`.
+
+### Como testei
+- `vencendo` sem parâmetro trouxe exatamente o esperado no comentário da consulta 1 (lotes que vencem hoje, em 7 e
+  em 8 dias); com `dias=7` e `dias=0` a lista diminui como esperado.
+- `dias=500` e `dias=1;DROP TABLE Lotes` voltam 400.
+- `estoque-por-categoria` bateu com a consulta 3, inclusive a categoria sem lotes aparecendo com 0.
+
+---
+
 ## Próximas sessões
 
 (Novas sessões são registradas aqui.)

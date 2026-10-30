@@ -21,7 +21,7 @@ Na indústria de alimentos, o estoque não é só "quantos tenho de cada produto
 | Camada | Tecnologia |
 |---|---|
 | API | ASP.NET Core 8 Web API (Controllers), Swagger / OpenAPI |
-| Acesso a dados | Entity Framework Core 8 (CRUD) · Dapper (relatórios, em desenvolvimento) |
+| Acesso a dados | Entity Framework Core 8 (CRUD) · Dapper com SQL puro (relatórios) |
 | Banco | SQL Server 2022 em Docker (`docker-compose`) |
 | Schema | Escrito à mão em T-SQL (`database/`), sem migrations |
 | Ferramentas | VS Code + C# Dev Kit, SSMS, Git |
@@ -87,6 +87,8 @@ erDiagram
 | `GET` | `/api/lotes/{id}` | Busca um lote, com o nome do produto e se está vencido | 200, 404 |
 | `GET` | `/api/lotes/{id}/movimentacoes` | Histórico de entradas e saídas do lote | 200, 404 |
 | `POST` | `/api/movimentacoes` | Registra uma entrada ou saída | 201, 400, 404 |
+| `GET` | `/api/relatorios/vencendo?dias=30` | Lotes com estoque que vencem nos próximos N dias (0 a 365) | 200, 400 |
+| `GET` | `/api/relatorios/estoque-por-categoria` | Estoque total e estoque válido (sem vencidos) por categoria | 200 |
 
 Exemplo, registrando uma saída:
 
@@ -152,6 +154,8 @@ dotnet run --project src/EstoqueLotes.Api
 
 Swagger: **http://localhost:5092/swagger**
 
+![Endpoints da API no Swagger](docs/swagger.png)
+
 ## Arquitetura
 
 ```
@@ -176,8 +180,11 @@ docs/DIARIO.md     Diário de desenvolvimento: o que fiz, o que aprendi e os pro
 - **Schema escrito à mão, EF Core só mapeia.** Quis aprender modelagem e T-SQL de verdade (constraints, índice,
   transação no seed) em vez de gerar o banco pelo ORM.
 - **EF Core no CRUD, Dapper nos relatórios.** O EF elimina o SQL repetitivo do CRUD. Nos relatórios, quero
-  controle total da consulta, então a ideia é usar SQL puro com Dapper e parâmetros (sem concatenar strings,
-  para evitar SQL Injection).
+  controle total da consulta, então uso SQL puro com Dapper (as mesmas consultas de `database/03-consultas.sql`)
+  e parâmetros (sem concatenar strings, para evitar SQL Injection).
+- **Um único "hoje".** A API decide a data de hoje (`DateTime.Today`) e a passa como parâmetro para os
+  relatórios, em vez de usar `GETDATE()` no banco. O container do SQL Server tem o fuso configurado
+  (`TZ` no `docker-compose.yml`) para o seed e a API concordarem sobre que dia é hoje.
 - **Uma transação por movimentação.** A movimentação nova e o saldo alterado do lote são gravados num único
   `SaveChangesAsync`, que o EF Core executa numa transação.
 - **Erros padronizados.** Os Services lançam exceções de negócio, e um `IExceptionHandler` global as transforma em
@@ -189,7 +196,6 @@ docs/DIARIO.md     Diário de desenvolvimento: o que fiz, o que aprendi e os pro
 
 ## Próximos passos
 
-- [ ] Relatórios com Dapper: lotes que vencem nos próximos N dias e estoque por categoria
 - [ ] Testes unitários da regra de movimentação (xUnit + Moq)
 - [ ] CI com GitHub Actions (build e testes a cada push)
 - [ ] Controle de concorrência nas saídas (duas saídas simultâneas do mesmo lote)
