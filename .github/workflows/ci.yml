@@ -1,0 +1,23 @@
+# CI: a cada push ou pull request na main, o GitHub compila o projeto e roda os testes numa máquina limpa.
+# Os testes usam mocks, então não precisam de banco nem de connection string.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-e-testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - run: dotnet restore
+      - run: dotnet build --no-restore --configuration Release
+      - run: dotnet test --no-build --configuration Release
